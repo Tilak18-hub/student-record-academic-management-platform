@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Academic Platform</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="hero">
+    <div class="container">
+      <p class="eyebrow">ACADEMIC MANAGEMENT</p>
+      <h1>Student Record Platform</h1>
+      <p>Manage student records and academic performance in one place.</p>
+      <span id="health-status" class="status">Checking service...</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <h2>Add a student</h2>
+      <form id="student-form">
+        <label>Full name<input name="name" required placeholder="e.g. Asha Patil"></label>
+        <label>Email address<input name="email" type="email" required placeholder="student@example.com"></label>
+        <label>Course<input name="course" required placeholder="e.g. Computer Science"></label>
+        <button type="submit">Add student</button>
+      </form>
+      <p id="student-message" class="message" role="status"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Record academic marks</h2>
+      <form id="marks-form">
+        <label>Student
+          <select name="student_id" id="student-select" required>
+            <option value="">Select a student</option>
+          </select>
+        </label>
+        <label>Subject<input name="subject" required placeholder="e.g. Cloud Computing"></label>
+        <label>Score (0–100)<input name="score" type="number" min="0" max="100" step="0.5" required></label>
+        <button type="submit">Save marks</button>
+      </form>
+      <p id="marks-message" class="message" role="status"></p>
+    </section>
+
+    <section class="panel wide">
+      <div class="section-heading">
+        <h2>Student directory</h2>
+        <button id="refresh-button" class="secondary" type="button">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Course</th></tr></thead>
+          <tbody id="students-table"><tr><td colspan="4">Loading students...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel wide">
+      <h2>Academic results</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Student</th><th>Subject</th><th>Score</th></tr></thead>
+          <tbody id="marks-table"><tr><td colspan="3">Loading marks...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="container">Student Record &amp; Academic Management Platform · DevOps Mini Project 4</div></footer>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

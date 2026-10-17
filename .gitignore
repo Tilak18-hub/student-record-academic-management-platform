@@ -1,0 +1,34 @@
+# Terraform state and local working files
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
+*.tfplan
+crash.log
+
+# Credentials and SSH keys
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.aws/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Ansible
+*.retry
+
+# OS/editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Terraform saved plan files
+/tfplan
+terraform/tfplan

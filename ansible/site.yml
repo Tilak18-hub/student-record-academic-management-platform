@@ -1,0 +1,140 @@
+---
+- name: Deploy Student Record and Academic Management Platform
+  hosts: student_app
+  become: true
+
+  vars:
+    app_dir: /opt/student-record-platform
+    app_image: student-record-platform:1.0
+    app_container: student-record-app
+    app_volume: student-record-data
+
+  tasks:
+    - name: Ensure Docker and Nginx are installed
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - nginx
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Ensure Docker is enabled and running
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Ensure Nginx is enabled and running
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+
+    - name: Copy application source
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ app_dir }}/{{ item.dest }}"
+        owner: ubuntu
+        group: ubuntu
+        mode: "{{ item.mode }}"
+      loop:
+        - { src: "../Dockerfile", dest: "Dockerfile", mode: "0644" }
+        - { src: "../requirements.txt", dest: "requirements.txt", mode: "0644" }
+        - { src: "../wsgi.py", dest: "wsgi.py", mode: "0644" }
+        - { src: "../app/", dest: "app/", mode: "0644" }
+
+    - name: Build student platform Docker image
+      community.docker.docker_image:
+        name: "{{ app_image }}"
+        source: build
+        build:
+          path: "{{ app_dir }}"
+        force_source: true
+
+    - name: Create persistent database volume
+      community.docker.docker_volume:
+        name: "{{ app_volume }}"
+        state: present
+
+    - name: Run student platform container
+      community.docker.docker_container:
+        name: "{{ app_container }}"
+        image: "{{ app_image }}"
+        state: started
+        restart_policy: unless-stopped
+        recreate: true
+        published_ports:
+          - "127.0.0.1:8080:8080"
+        volumes:
+          - "{{ app_volume }}:/data"
+
+    - name: Configure Nginx reverse proxy
+      ansible.builtin.copy:
+        dest: /etc/nginx/sites-available/student-record-platform
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          server {
+              listen 80 default_server;
+              listen [::]:80 default_server;
+              server_name _;
+
+              location / {
+                  proxy_pass http://127.0.0.1:8080;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+          }
+      notify: Validate and reload Nginx
+
+    - name: Enable student platform Nginx site
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/student-record-platform
+        dest: /etc/nginx/sites-enabled/student-record-platform
+        state: link
+        force: true
+      notify: Validate and reload Nginx
+
+    - name: Disable default Nginx site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Validate and reload Nginx
+
+    - name: Check application health endpoint
+      ansible.builtin.uri:
+        url: http://127.0.0.1:8080/api/health
+        method: GET
+        status_code: 200
+        return_content: true
+      register: health_check
+      retries: 10
+      delay: 3
+      until: health_check.status == 200
+
+    - name: Display application health
+      ansible.builtin.debug:
+        var: health_check.json
+
+  handlers:
+    - name: Validate and reload Nginx
+      ansible.builtin.command: nginx -t
+      changed_when: false
+      notify: Reload Nginx
+
+    - name: Reload Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
